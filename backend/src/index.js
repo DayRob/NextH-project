@@ -11,6 +11,19 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+const userSelect = {
+  id: true,
+  name: true,
+  email: true,
+  age: true,
+  weightKg: true,
+  heightCm: true,
+  healthGoal: true,
+  activityLevel: true,
+  createdAt: true,
+  updatedAt: true,
+};
+
 // Authentication middleware
 const authMiddleware = async (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -59,6 +72,78 @@ app.post('/users/register', async (req, res) => {
   }
 });
 
+// Public profile creation (no auth, used by frontend onboarding)
+app.post('/profiles', async (req, res) => {
+  try {
+    const { name, email, age, weightKg, heightCm, healthGoal, activityLevel } = req.body;
+
+    if (!name || !email) {
+      return res.status(400).json({ message: 'Name and email are required' });
+    }
+
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      return res.status(400).json({ message: 'A profile with this email already exists.' });
+    }
+
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        passwordHash: null,
+        age: age ? Number(age) : null,
+        weightKg: weightKg ? Number(weightKg) : null,
+        heightCm: heightCm ? Number(heightCm) : null,
+        healthGoal,
+        activityLevel,
+      },
+      select: userSelect,
+    });
+
+    res.status(201).json(user);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to create profile', error: err.message });
+  }
+});
+
+// Public profile retrieval
+app.get('/profiles/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await prisma.user.findUnique({ where: { id }, select: userSelect });
+    if (!user) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch profile', error: err.message });
+  }
+});
+
+// Public profile update
+app.put('/profiles/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, age, weightKg, heightCm, healthGoal, activityLevel } = req.body;
+
+    const user = await prisma.user.update({
+      where: { id },
+      data: {
+        name,
+        age: typeof age !== 'undefined' ? Number(age) : undefined,
+        weightKg: typeof weightKg !== 'undefined' ? Number(weightKg) : undefined,
+        heightCm: typeof heightCm !== 'undefined' ? Number(heightCm) : undefined,
+        healthGoal,
+        activityLevel,
+      },
+      select: userSelect,
+    });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to update profile', error: err.message });
+  }
+});
+
 // User login
 app.post('/users/login', async (req, res) => {
   try {
@@ -67,6 +152,12 @@ app.post('/users/login', async (req, res) => {
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
+
+    // Check if user has a password (null for profiles created via /profiles endpoint)
+    if (!user.passwordHash) {
+      return res.status(401).json({ message: 'Account requires password setup. Please use the onboarding flow.' });
+    }
+
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) {
       return res.status(401).json({ message: 'Invalid credentials' });

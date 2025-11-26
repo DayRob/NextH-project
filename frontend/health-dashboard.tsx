@@ -1,125 +1,59 @@
 "use client"
 
-import { useState } from "react"
+import Link from "next/link"
+import { useMemo } from "react"
 import { Card, CardContent } from "@/components/ui/card"
-import { Activity, BarChart3, Heart, TrendingUp } from "lucide-react"
+import { Activity, Flame, Moon, Sparkles, SunMedium } from "lucide-react"
 import { ActivityDistributionChart } from "./components/activity-distribution-chart"
 import { HealthScoreCard } from "./components/health-score-card"
 import { HealthSummary } from "./components/health-summary"
 import { ProfileSettings } from "./components/profile-settings"
-import type { Activity as ActivityType, UserProfile } from "./types"
+import type { Activity as ActivityType, HealthMetrics, HealthScore, UserProfile } from "./types"
 import {
   calculateActivityDistribution,
   calculateHealthMetrics,
   calculateHealthScore,
   generateHealthRecommendations,
 } from "./utils/health-calculator"
+import { useProfile } from "@/hooks/use-profile"
 
-// Mock data
-const mockProfile: UserProfile = {
-  id: "1",
-  name: "Alex Johnson",
-  age: 28,
-  weight: 70,
-  height: 175,
-  healthGoal: "general_health",
-  activityLevel: "moderately_active",
+const emptyMetrics: HealthMetrics = {
+  weeklyExerciseMinutes: 0,
+  weeklySteps: 0,
+  averageSleepHours: 0,
+  weeklyReadingHours: 0,
+  weeklyMeditationMinutes: 0,
+  weeklyOutdoorMinutes: 0,
 }
 
-const mockActivities: ActivityType[] = [
-  {
-    id: "1",
-    title: "Morning Run",
-    duration: 45,
-    tags: ["Sport", "Outdoor"],
-    completedAt: "2024-01-22T07:30:00Z",
-    date: "2024-01-22",
-    time: "07:30",
-    calories: 400,
-    intensity: "moderate",
-  },
-  {
-    id: "2",
-    title: "Night Sleep",
-    duration: 480, // 8 hours
-    tags: ["Sleep"],
-    completedAt: "2024-01-22T23:00:00Z",
-    date: "2024-01-22",
-    time: "23:00",
-  },
-  {
-    id: "3",
-    title: "Reading Session",
-    duration: 60,
-    tags: ["Reading"],
-    completedAt: "2024-01-22T20:00:00Z",
-    date: "2024-01-22",
-    time: "20:00",
-  },
-  {
-    id: "4",
-    title: "Meditation",
-    duration: 20,
-    tags: ["Meditation"],
-    completedAt: "2024-01-22T06:00:00Z",
-    date: "2024-01-22",
-    time: "06:00",
-  },
-  {
-    id: "5",
-    title: "Evening Walk",
-    duration: 30,
-    tags: ["Walking", "Outdoor"],
-    completedAt: "2024-01-21T18:00:00Z",
-    date: "2024-01-21",
-    time: "18:00",
-  },
-  {
-    id: "6",
-    title: "Gym Workout",
-    duration: 60,
-    tags: ["Sport"],
-    completedAt: "2024-01-21T17:00:00Z",
-    date: "2024-01-21",
-    time: "17:00",
-    calories: 350,
-    intensity: "high",
-  },
-  {
-    id: "7",
-    title: "Night Sleep",
-    duration: 420, // 7 hours
-    tags: ["Sleep"],
-    completedAt: "2024-01-21T23:30:00Z",
-    date: "2024-01-21",
-    time: "23:30",
-  },
-  {
-    id: "8",
-    title: "Yoga Session",
-    duration: 45,
-    tags: ["Sport", "Meditation"],
-    completedAt: "2024-01-20T08:00:00Z",
-    date: "2024-01-20",
-    time: "08:00",
-  },
-]
+const emptyScore: HealthScore = {
+  overall: 0,
+  exercise: 0,
+  sleep: 0,
+  mental: 0,
+  lifestyle: 0,
+  message: "Créez votre profil pour obtenir un score personnalisé.",
+  status: "needs_improvement",
+}
 
 export default function HealthDashboard() {
-  const [profile, setProfile] = useState<UserProfile>(mockProfile)
-  const [activities] = useState<ActivityType[]>(mockActivities)
+  const { profile, loading, profileId, setProfile } = useProfile()
+  const activities: ActivityType[] = [] // Les activités seront branchées sur Supabase plus tard
 
-  const activityDistribution = calculateActivityDistribution(activities)
-  const healthMetrics = calculateHealthMetrics(activities)
-  const healthRecommendations = generateHealthRecommendations(healthMetrics, profile)
-  const healthScore = calculateHealthScore(healthMetrics, profile)
+  const activityDistribution = useMemo(() => calculateActivityDistribution(activities), [activities])
+  const healthMetrics = useMemo(
+    () => (activities.length ? calculateHealthMetrics(activities) : emptyMetrics),
+    [activities],
+  )
+  const healthRecommendations = useMemo(
+    () => (profile ? generateHealthRecommendations(healthMetrics, profile) : []),
+    [healthMetrics, profile],
+  )
+  const healthScore = useMemo(
+    () => (profile ? calculateHealthScore(healthMetrics, profile) : emptyScore),
+    [healthMetrics, profile],
+  )
 
-  const handleUpdateProfile = (updatedProfile: UserProfile) => {
-    setProfile(updatedProfile)
-  }
-
-  // Calculate some quick stats
-  const totalActivities = activities.length
   const weeklyActivities = activities.filter((activity) => {
     const activityDate = new Date(activity.date)
     const weekAgo = new Date()
@@ -127,119 +61,166 @@ export default function HealthDashboard() {
     return activityDate >= weekAgo
   }).length
 
-  const totalMinutesThisWeek = activities
-    .filter((activity) => {
-      const activityDate = new Date(activity.date)
-      const weekAgo = new Date()
-      weekAgo.setDate(weekAgo.getDate() - 7)
-      return activityDate >= weekAgo
-    })
-    .reduce((sum, activity) => sum + activity.duration, 0)
+  const totalMinutesThisWeek = activities.reduce((sum, activity) => sum + activity.duration, 0)
+
+  if (loading) {
+    return (
+      <div className="rounded-3xl border border-white/10 bg-slate-950/60 p-10 text-center text-white">
+        Chargement du profil...
+      </div>
+    )
+  }
+
+  if (!profileId || !profile) {
+    return (
+      <div className="rounded-3xl border border-dashed border-white/15 bg-slate-950/40 p-10 text-center text-white">
+        <div className="space-y-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-1 text-xs uppercase tracking-[0.3em] text-slate-200">
+            <Sparkles className="h-3 w-3" />
+            Aucune donnée
+          </div>
+          <h2 className="text-3xl font-semibold">Commencez par créer votre profil bien-être</h2>
+          <p className="text-sm text-slate-300">
+            Nous utiliserons vos informations pour générer des recommandations adaptées et suivre vos routines.
+          </p>
+          <Link
+            className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 px-6 py-3 text-white"
+            href="/onboarding"
+          >
+            Créer mon profil
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  const heroStats = [
+    {
+      label: "Score vitalité",
+      value: `${healthScore.overall}/100`,
+      subLabel: healthScore.status === "excellent" ? "Excellent" : "En construction",
+      icon: Flame,
+      accent: "from-orange-500/20 to-pink-500/20",
+    },
+    {
+      label: "Minutes actives",
+      value: `${Math.round(totalMinutesThisWeek)} min`,
+      subLabel: "En attente de nouvelles activités",
+      icon: Activity,
+      accent: "from-cyan-500/20 to-blue-500/20",
+    },
+    {
+      label: "Routine sommeil",
+      value: `${healthMetrics.averageSleepHours.toFixed(1)}h`,
+      subLabel: "Ajoutez vos nuits pour suivre la progression",
+      icon: Moon,
+      accent: "from-emerald-500/20 to-lime-500/20",
+    },
+  ]
 
   return (
-    <div className="min-h-screen bg-black text-white font-sans">
-      {/* Background Gradient */}
-      <div className="fixed inset-0 bg-gradient-to-br from-purple-900/20 via-black to-cyan-900/20 pointer-events-none" />
-
-      <div className="relative z-10">
-        {/* Header */}
-        <header className="border-b border-gray-800/50 bg-black/50 backdrop-blur-sm sticky top-0 z-40">
-          <div className="container mx-auto px-6 py-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-r from-red-500 to-pink-500 rounded-lg">
-                <Heart className="h-6 w-6 text-white" />
-              </div>
+    <div className="space-y-10">
+      <section className="overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 p-8 text-white shadow-2xl shadow-cyan-900/10">
+        <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
+          <div className="space-y-6">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1 text-xs uppercase tracking-[0.3em] text-slate-100">
+              <Sparkles className="h-3 w-3" />
+              Profil activé
+            </div>
+            <div className="space-y-4">
+              <h2 className="text-4xl font-semibold leading-tight">Bienvenue {profile.name}</h2>
+              <p className="text-base text-slate-200">
+                Ajoutez vos premières activités pour générer des insights personnalisés et voir cette section prendre vie.
+              </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              {heroStats.map((stat) => (
+                <div
+                  key={stat.label}
+                  className={`rounded-2xl border border-white/10 bg-gradient-to-br ${stat.accent} px-4 py-5 shadow-lg shadow-black/10`}
+                >
+                  <stat.icon className="mb-3 h-5 w-5 text-white/80" />
+                  <p className="text-sm uppercase tracking-[0.3em] text-slate-300">{stat.label}</p>
+                  <p className="text-2xl font-semibold">{stat.value}</p>
+                  <p className="text-xs text-slate-200">{stat.subLabel}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-3xl border border-white/5 bg-white/5 p-6 backdrop-blur">
+            <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                  Health Dashboard
-                </h1>
-                <p className="text-gray-400">Track your wellness journey with personalized insights</p>
+                <p className="text-sm uppercase tracking-[0.3em] text-slate-200">Activités loggées</p>
+                <p className="text-4xl font-semibold">{activities.length}</p>
               </div>
+              <span className="rounded-full border border-white/20 px-3 py-1 text-xs text-slate-200">7 derniers jours</span>
             </div>
-          </div>
-        </header>
-
-        <div className="container mx-auto px-6 py-8">
-          {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <Card className="bg-gradient-to-br from-purple-900/30 to-purple-800/20 border-purple-500/30 backdrop-blur-sm">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-purple-500/20 rounded-lg">
-                    <Activity className="h-6 w-6 text-purple-400" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-white">{weeklyActivities}</p>
-                    <p className="text-purple-300 text-sm">Activities This Week</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-cyan-900/30 to-cyan-800/20 border-cyan-500/30 backdrop-blur-sm">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-cyan-500/20 rounded-lg">
-                    <TrendingUp className="h-6 w-6 text-cyan-400" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-white">{Math.round(totalMinutesThisWeek / 60)}h</p>
-                    <p className="text-cyan-300 text-sm">Active Hours</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-green-900/30 to-green-800/20 border-green-500/30 backdrop-blur-sm">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-green-500/20 rounded-lg">
-                    <Heart className="h-6 w-6 text-green-400" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-white">{healthScore.overall}</p>
-                    <p className="text-green-300 text-sm">Health Score</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-orange-900/30 to-orange-800/20 border-orange-500/30 backdrop-blur-sm">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-orange-500/20 rounded-lg">
-                    <BarChart3 className="h-6 w-6 text-orange-400" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-white">{totalActivities}</p>
-                    <p className="text-orange-300 text-sm">Total Logged</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Main Dashboard Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Column */}
-            <div className="lg:col-span-2 space-y-8">
-              {/* Activity Distribution Chart */}
-              <ActivityDistributionChart data={activityDistribution} />
-
-              {/* Health Summary */}
-              <HealthSummary recommendations={healthRecommendations} />
-            </div>
-
-            {/* Right Column */}
-            <div className="space-y-8">
-              {/* Health Score */}
-              <HealthScoreCard score={healthScore} />
-
-              {/* Profile Settings */}
-              <ProfileSettings profile={profile} onUpdateProfile={handleUpdateProfile} />
+            <div className="mt-6 space-y-4">
+              <MetricBar label="Habitudes actives" value={weeklyActivities} trend="Bientôt disponible" accent="bg-cyan-400" />
+              <MetricBar
+                label="Minutes conscientes"
+                value={healthMetrics.weeklyMeditationMinutes + healthMetrics.weeklyReadingHours * 60}
+                trend="Connectez vos activités"
+                accent="bg-purple-400"
+              />
+              <MetricBar
+                label="Moments outdoor"
+                value={healthMetrics.weeklyOutdoorMinutes}
+                trend="Ajoutez des marches / sorties"
+                accent="bg-emerald-400"
+              />
             </div>
           </div>
         </div>
+      </section>
+
+      <section className="grid gap-8 lg:grid-cols-3">
+        <div className="space-y-8 lg:col-span-2">
+          <ActivityDistributionChart data={activityDistribution} />
+          <HealthSummary recommendations={healthRecommendations} />
+        </div>
+        <div className="space-y-8">
+          <HealthScoreCard score={healthScore} />
+          <ProfileSettings profile={profile} onUpdateProfile={(updated) => setProfile(updated)} />
+        </div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-3">
+        {[1, 2, 3].map((index) => (
+          <Card key={index} className="border border-white/10 bg-gradient-to-br from-slate-900/70 to-slate-900/30 text-white">
+            <CardContent className="space-y-3 p-6">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.3em] text-slate-200">
+                <SunMedium className="h-3 w-3" />
+                À venir
+              </div>
+              <h3 className="text-lg font-semibold">Connectez vos prochaines activités</h3>
+              <p className="text-sm text-slate-300">Le suivi détaillé s'activera dès que vous enregistrerez une séance.</p>
+              <p className="text-xs text-cyan-200">Fonctionnalité bientôt disponible</p>
+            </CardContent>
+          </Card>
+        ))}
+      </section>
+    </div>
+  )
+}
+
+interface MetricBarProps {
+  label: string
+  value: number | string
+  trend: string
+  accent: string
+}
+
+function MetricBar({ label, value, trend, accent }: MetricBarProps) {
+  return (
+    <div className="space-y-2 rounded-2xl border border-white/10 bg-white/5 p-4">
+      <div className="flex items-center justify-between text-sm text-slate-200">
+        <p>{label}</p>
+        <span>{trend}</span>
+      </div>
+      <div className="flex items-center gap-3">
+        <div className={`h-2 flex-1 rounded-full ${accent}`} />
+        <span className="text-lg font-semibold text-white">{value}</span>
       </div>
     </div>
   )

@@ -59,29 +59,35 @@ export function HealthSummary({ recommendations }: HealthSummaryProps) {
         <p className="text-sm text-gray-400">Based on WHO guidelines and your personal data</p>
       </CardHeader>
       <CardContent className="space-y-6">
-        {recommendations.map((rec) => (
-          <div key={rec.category} className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {getStatusIcon(rec.status)}
-                <h3 className="font-medium text-white">{rec.category}</h3>
-              </div>
-              <span className={`text-sm font-medium ${getStatusColor(rec.status)}`}>
-                {rec.status.charAt(0).toUpperCase() + rec.status.slice(1)}
-              </span>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Current: {rec.current}</span>
-                <span className="text-gray-400">Target: {rec.recommended}</span>
-              </div>
-              <Progress value={getProgressValue(rec.status)} className="h-2" />
-            </div>
-
-            <p className="text-sm text-gray-300 leading-relaxed">{rec.message}</p>
+        {recommendations.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-white/10 p-6 text-center text-sm text-gray-400">
+            Les recommandations apparaîtront lorsque vous aurez ajouté des activités.
           </div>
-        ))}
+        ) : (
+          recommendations.map((rec) => (
+            <div key={rec.category} className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {getStatusIcon(rec.status)}
+                  <h3 className="font-medium text-white">{rec.category}</h3>
+                </div>
+                <span className={`text-sm font-medium ${getStatusColor(rec.status)}`}>
+                  {rec.status.charAt(0).toUpperCase() + rec.status.slice(1)}
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Current: {rec.current}</span>
+                  <span className="text-gray-400">Target: {rec.recommended}</span>
+                </div>
+                <Progress value={getProgressValue(rec.status)} className="h-2" />
+              </div>
+
+              <p className="text-sm text-gray-300 leading-relaxed">{rec.message}</p>
+            </div>
+          ))
+        )}
       </CardContent>
     </Card>
   )

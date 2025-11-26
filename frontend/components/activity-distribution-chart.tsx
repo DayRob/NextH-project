@@ -31,42 +31,50 @@ export function ActivityDistributionChart({ data }: ActivityDistributionChartPro
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie data={data} cx="50%" cy="50%" innerRadius={60} outerRadius={120} paddingAngle={2} dataKey="minutes">
-                {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <ChartTooltip
-                content={
-                  <ChartTooltipContent
-                    formatter={(value, name) => [
-                      `${value} minutes (${data.find((d) => d.tag.toLowerCase() === name)?.percentage.toFixed(1)}%)`,
-                      data.find((d) => d.tag.toLowerCase() === name)?.tag,
-                    ]}
+        {data.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-white/10 p-6 text-center text-sm text-gray-400">
+            Aucune activité enregistrée pour l’instant. Ajoutez vos premières séances pour voir cette visualisation.
+          </div>
+        ) : (
+          <>
+            <ChartContainer config={chartConfig} className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={data} cx="50%" cy="50%" innerRadius={60} outerRadius={120} paddingAngle={2} dataKey="minutes">
+                    {data.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        formatter={(value, name) => [
+                          `${value} minutes (${data.find((d) => d.tag.toLowerCase() === name)?.percentage.toFixed(1)}%)`,
+                          data.find((d) => d.tag.toLowerCase() === name)?.tag,
+                        ]}
+                      />
+                    }
                   />
-                }
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </ChartContainer>
+                </PieChart>
+              </ResponsiveContainer>
+            </ChartContainer>
 
-        {/* Legend */}
-        <div className="mt-6 grid grid-cols-2 gap-3">
-          {data.map((item) => (
-            <div key={item.tag} className="flex items-center gap-3">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-white">{item.tag}</p>
-                <p className="text-xs text-gray-400">
-                  {item.minutes}min ({item.percentage.toFixed(1)}%)
-                </p>
-              </div>
+            {/* Legend */}
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              {data.map((item) => (
+                <div key={item.tag} className="flex items-center gap-3">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-white">{item.tag}</p>
+                    <p className="text-xs text-gray-400">
+                      {item.minutes}min ({item.percentage.toFixed(1)}%)
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </>
+        )}
       </CardContent>
     </Card>
   )

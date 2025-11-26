@@ -28,3 +28,26 @@ Continue building your app on:
 2. Deploy your chats from the v0 interface
 3. Changes are automatically pushed to this repository
 4. Vercel deploys the latest version from this repository
+
+## Configuration Supabase (données temps réel)
+
+L'application lit et écrit directement dans Supabase via `@supabase/supabase-js`.
+
+1. **Copiez le fichier d'exemple** :
+   ```bash
+   cp .env.example .env.local
+   ```
+
+2. **Configurez vos variables d'environnement** dans `.env.local` :
+   - `NEXT_PUBLIC_SUPABASE_URL` : Votre URL de projet Supabase
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` : Votre clé d'API anonyme Supabase
+
+Ensuite :
+
+```
+cd frontend
+npm install
+npm run dev
+```
+
+Tous les formulaires (création + édition de profil) pointeront automatiquement vers Supabase.

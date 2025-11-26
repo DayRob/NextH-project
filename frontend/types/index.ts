@@ -1,23 +1,31 @@
 export interface UserProfile {
   id: string
   name: string
-  age: number
-  weight: number // in kg
-  height: number // in cm
-  healthGoal: "weight_loss" | "muscle_gain" | "maintenance" | "endurance" | "general_health"
-  activityLevel: "sedentary" | "lightly_active" | "moderately_active" | "very_active" | "extremely_active"
+  email: string
+  age?: number | null
+  weightKg?: number | null
+  heightCm?: number | null
+  healthGoal?: "weight_loss" | "muscle_gain" | "maintenance" | "endurance" | "general_health"
+  activityLevel?: "sedentary" | "lightly_active" | "moderately_active" | "very_active" | "extremely_active"
+  createdAt?: string
+  updatedAt?: string
 }
+
+export type ActivityIntensity = "low" | "moderate" | "high"
 
 export interface Activity {
   id: string
   title: string
   description?: string
   time: string
+  duration: number
   repeatPattern: string
   tags: string[]
   completedAt: string
   category: string
   date: string
+  calories?: number
+  intensity?: ActivityIntensity
 }
 
 export interface ActivityFormData {
@@ -33,8 +41,9 @@ export type RepeatFrequency = "daily" | "weekdays" | "weekends" | "weekly" | "cu
 
 export interface Challenge {
   id: string
-  name: string
+  title: string
   description: string
+  focus: string
   activities: Activity[]
   progress: number
   target: number
@@ -77,6 +86,15 @@ export interface HealthScore {
   lifestyle: number
   message: string
   status: "excellent" | "good" | "fair" | "needs_improvement"
+}
+
+export interface WellnessHighlight {
+  id: string
+  title: string
+  description: string
+  trend: "up" | "steady" | "down"
+  metric: string
+  accent: string
 }
 
 export interface ActivityDistribution {
