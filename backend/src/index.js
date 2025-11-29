@@ -279,6 +279,16 @@ app.get('/users/:userId/activities', authMiddleware, async (req, res) => {
   }
 });
 
+// Health check endpoint for Docker
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
 const port = process.env.PORT || 3001;
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);

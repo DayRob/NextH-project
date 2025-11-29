@@ -1,0 +1,29 @@
+# Development Dockerfile for Express.js
+FROM node:18-alpine
+
+# Install dependencies
+RUN apk add --no-cache libc6-compat openssl git
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies (including dev dependencies)
+RUN npm install
+
+# Copy source code
+COPY . .
+
+# Generate Prisma client
+RUN npx prisma generate
+
+# Expose port
+EXPOSE 3001
+
+# Set environment
+ENV NODE_ENV=development
+
+# Default command
+CMD ["npm", "run", "dev"]

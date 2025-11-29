@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  # Frontend Next.js Application (Development)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: nexth-frontend-dev
+    ports:
+      - "3003:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+    depends_on:
+      - backend
+    networks:
+      - nexth-network
+    command: npm run dev
+    restart: unless-stopped
+
+  # Backend Express.js API (Development)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: nexth-backend-dev
+    ports:
+      - "3002:3001"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - PORT=3001
+    networks:
+      - nexth-network
+    command: npm run dev
+    restart: unless-stopped
+
+networks:
+  nexth-network:
+    driver: bridge
